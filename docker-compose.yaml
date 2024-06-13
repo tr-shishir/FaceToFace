@@ -1,0 +1,81 @@
+version: "3.9"
+
+services:
+  proxy:
+    image: jwilder/nginx-proxy
+    container_name: facetoface-proxy
+    ports:
+      - 8080:8080
+    volumes:
+      - /var/run/docker.sock:/tmp/docker.sock
+      - ./nginx/conf.d:/etc/nginx/conf.d
+    restart: always
+    networks:
+      - facetoface-local-network
+
+  redis:
+    image: redis:latest
+    container_name: facetoface-cache
+    ports:
+      - target: 6379
+        published: "${REDIS_PUBLISHED_PORT:-30060}"
+    volumes:
+      - facetoface-cache:/data
+    restart: always
+    networks:
+      - facetoface-local-network
+
+  mysql:
+    image: mysql:8.3
+    container_name: facetoface-db
+    ports:
+      - "${DB_EXPOSED_PORT:-30030}:3306"
+    volumes:
+      - facetoface-db:/var/lib/mysql
+      - ./init-db:/docker-entrypoint-initdb.d
+    restart: always
+    command:
+      - "--default-authentication-plugin=mysql_native_password"
+      - "--sql-mode=STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION"
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-facetoface_root}
+    networks:
+      - facetoface-local-network
+
+  facetoface:
+    container_name: facetoface
+    image: facetoface
+    restart: unless-stopped
+    stdin_open: true
+    tty: true
+    build:
+      dockerfile: docker/Dockerfile.local
+      context: ./
+    ports:
+      - "8888:80"
+    environment:
+      VIRTUAL_HOST: "${ADMIN_VIRTUAL_HOST:-admin.facetoface.local},${APP_VIRTUAL_HOST:-app.facetoface.local}"
+    working_dir: /opt/app
+    volumes:
+      - .:/opt/app
+      - ./docker/supervisor/conf.d/horizon.conf:/etc/supervisor/conf.d/horizon.conf
+      - ./docker/nginx/conf.d/nginx.conf:/etc/nginx/nginx.conf
+      - ./docker/nginx/conf.d/nginx-local.conf:/etc/nginx/sites-enabled/default
+      - ./docker/php/local.ini:/usr/local/etc/php/conf.d/local.ini
+      - ./docker/php/php.ini:/usr/local/etc/php/conf.d/php.override.ini
+      - ./docker/php/conf.d/www.local.conf:/usr/local/etc/php-fpm.d/www.conf
+      - ./docker/nginx/logs:/var/log/nginx
+    entrypoint: /etc/entrypoint.sh
+    networks:
+      - facetoface-local-network
+
+volumes:
+  facetoface-db:
+    driver: local
+  facetoface-cache:
+  facetoface-bridge-blob:
+
+networks:
+  facetoface-local-network:
+    name: ${EXTERNAL_NETWORK:-facetoface-local-network}
+    external: true

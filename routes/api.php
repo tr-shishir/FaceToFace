@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\API\LocationsLogController;
 use App\Http\Controllers\API\OTPController;
 use App\Http\Controllers\API\UserController;
 use App\Http\Controllers\Auth\PasswordResetLinkController;
@@ -25,6 +26,13 @@ Route::post('forgot-password', [PasswordResetLinkController::class, 'store'])
     ->name('password.email');
 
 
-Route::group(['middleware' => 'auth:api'], function (){
+Route::group(['middleware' => 'jwtAuth'], function (){
+    Route::post('logout',[UserController::class,'logout']);
     Route::get('profile-details',[UserController::class,'userDetails']);
+    Route::put('update-profile',[UserController::class,'updateProfile']);
+
+    Route::get('locations',[LocationsLogController::class,'getLocations']);
+
+
+    Route::post('update-location',[LocationsLogController::class,'updateLocation']);
 });

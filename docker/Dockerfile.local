@@ -1,0 +1,67 @@
+FROM php:8.2-fpm
+
+# PHP_CPPFLAGS are used by the docker-php-ext-* scripts
+ENV PHP_CPPFLAGS="$PHP_CPPFLAGS -std=c++11"
+
+WORKDIR /opt/app
+
+ADD https://github.com/mlocati/docker-php-extension-installer/releases/latest/download/install-php-extensions /usr/local/bin/
+
+RUN chmod +x /usr/local/bin/install-php-extensions && sync && install-php-extensions mbstring pdo_mysql zip exif pcntl gd calendar
+
+RUN apt-get update && apt-get install -y \
+    build-essential locales zip unzip lua-zlib-dev \
+    libpng-dev libjpeg62-turbo-dev libfreetype6-dev libxrender1 libfontconfig1 \
+    jpegoptim optipng pngquant gifsicle \
+    git curl nginx cron
+
+# Install supervisor
+RUN apt-get install -y supervisor
+
+RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
+
+RUN apt-get clean && rm -rf /var/lib/apt/lists/*
+
+RUN pecl install apfd && docker-php-ext-enable apfd
+RUN pecl install -o -f redis && rm -rf /tmp/pear && docker-php-ext-enable redis
+RUN pecl install apcu && rm -rf /tmp/pear && docker-php-ext-enable apcu
+
+
+RUN apt-get update && apt-get install -y libmagickwand-dev --no-install-recommends && rm -rf /var/lib/apt/lists/*
+
+RUN mkdir -p /usr/src/php/ext/imagick; \
+    curl -fsSL https://github.com/Imagick/imagick/archive/06116aa24b76edaf6b1693198f79e6c295eda8a9.tar.gz | tar xvz -C "/usr/src/php/ext/imagick" --strip 1; \
+    docker-php-ext-install imagick;
+
+RUN apt-get update && apt-get install -y \
+    zlib1g-dev
+
+# Add user for laravel application
+RUN groupadd -g 1000 www
+RUN useradd -u 1000 -ms /bin/bash -g www www
+
+RUN apt-get update && apt-get install -y libmagickwand-dev --no-install-recommends && rm -rf /var/lib/apt/lists/*
+
+RUN mkdir -p /usr/src/php/ext/imagick; \
+    curl -fsSL https://github.com/Imagick/imagick/archive/06116aa24b76edaf6b1693198f79e6c295eda8a9.tar.gz | tar xvz -C "/usr/src/php/ext/imagick" --strip 1; \
+    docker-php-ext-install imagick;
+
+# PHP Error Log Files
+RUN mkdir /var/log/php
+RUN touch /var/log/php/errors.log && chmod 777 /var/log/php/errors.log
+
+# Make fpm log script executable
+COPY docker/fpm_log_file_created.sh /etc/fpm_log_file_created.sh
+RUN chmod +x /etc/fpm_log_file_created.sh
+RUN /etc/fpm_log_file_created.sh
+
+
+RUN apt-get update && apt-get install -y nano
+
+RUN apt-get update && apt-get upgrade -y && apt-get install -y --no-install-recommends openssl
+
+COPY docker/entrypoint.sh /etc/entrypoint.sh
+RUN chmod +x /etc/entrypoint.sh
+# COPY City /opt/app/public/City
+
+EXPOSE 80 443

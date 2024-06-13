@@ -1,0 +1,13 @@
+version: "3.9"
+services:
+  facetoface-bridge:
+    environment:
+      SERVICE_NAME: app
+    ports:
+      - ${PORT}:80
+    volumes:
+      - ../nginx/logs:/var/log/nginx
+
+networks:
+  facetoface-bridge-network:
+    driver: bridge

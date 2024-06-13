@@ -13,86 +13,20 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Polygon\OTP\AuthorizationCode;
+use Tymon\JWTAuth\Facades\JWTAuth;
 
 class UserController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
-    public function index()
-    {
-        //
-    }
-
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
-    {
-        //
-    }
-
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(Request $request)
-    {
-        //
-    }
-
-    /**
-     * Display the specified resource.
-     */
-    public function show(string $id)
-    {
-        //
-    }
-
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(string $id)
-    {
-        //
-    }
-
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, string $id)
-    {
-        //
-    }
-
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(string $id)
-    {
-        //
-    }
-
     public function userLogin(LoginRequest $request)
     {
         $request->authenticate();
-
-        $request->session()->regenerate();
 
         $request->user()->update([
             'last_login_at' => Carbon::now()->toDateTimeString(),
             'last_login_ip' => $request->getClientIp()
         ]);
-        LocationsLog::updateOrInsert(
-            [
-                'user_id ' => $request->user()->id,
-            ],
-            [
-                'latitude ' => $request->lat,
-                'longitude ' => $request->long,
-            ]
-        );
 
-        $token = $request->user()->createToken($request->email)->accessToken;
+        $token = JWTAuth::fromUser($request->user());
 
         return response()->json(['token' => $token]);
 
@@ -100,7 +34,7 @@ class UserController extends Controller
 
     public function userDetails()
     {
-        $user = Auth::guard('api')->user()->load(['location']);
+        $user = Auth::user()->load(['location']);
 
         return response()->json(['data' => $user]);
     }
@@ -134,9 +68,19 @@ class UserController extends Controller
 
         event(new Registered($user));
 
-        Auth::login($user);
-        $token = Auth::user()->createToken($user->email)->accessToken;
+        $credentials = ['email' => $email, 'password' => $request->password];
+
+        if (!$token = JWTAuth::attempt($credentials)) {
+            return response()->json(['message' => 'Unauthorized'], 401);
+        }
 
         return response()->json(['token' => $token, 'user' => $user]);
+    }
+
+    public function logout()
+    {
+        auth()->logout();
+
+        return response()->json(['message' => 'Successfully logged out']);
     }
 }

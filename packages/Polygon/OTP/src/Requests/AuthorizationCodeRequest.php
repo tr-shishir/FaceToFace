@@ -34,7 +34,7 @@ class AuthorizationCodeRequest extends FormRequest
 
         return [
             'mobile' => ['sometimes', new BDMobileValidationRule()],
-            'email' => ['sometimes', 'regex:/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/'],
+            'email' => ['required', 'regex:/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/'],
             'otp' => 'required',
         ];
     }

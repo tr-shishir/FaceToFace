@@ -8,59 +8,31 @@ use Illuminate\Http\Request;
 
 class LocationsLogController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
-    public function index()
+    public function updateLocation(Request $request)
     {
-        //
+        $request->validate([
+            'lat' => 'required',
+            'long' => 'required',
+        ]);
+
+        $location = auth()->user()->location()->first();
+
+        if (!$location) {
+            $location = new LocationsLog();
+            $location->user_id = auth()->id();
+        }
+
+        $location->latitude = $request->lat;
+        $location->longitude = $request->long;
+        $location->save();
+
+
+        return response()->json(['message' => 'Location updated successfully']);
     }
 
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
+    public function getLocations()
     {
-        //
-    }
-
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(Request $request)
-    {
-        //
-    }
-
-    /**
-     * Display the specified resource.
-     */
-    public function show(LocationsLog $locationsLog)
-    {
-        //
-    }
-
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(LocationsLog $locationsLog)
-    {
-        //
-    }
-
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, LocationsLog $locationsLog)
-    {
-        //
-    }
-
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(LocationsLog $locationsLog)
-    {
-        //
+        $locations = LocationsLog::where('user_id', '!=', auth()->id())->with('user')->get();
+        return response()->json($locations);
     }
 }

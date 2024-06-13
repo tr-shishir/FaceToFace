@@ -13,10 +13,10 @@ return new class extends Migration
     {
         Schema::create('locations_logs', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('user_id')->references('user_id')->on('users');
+            $table->foreignId('user_id')->references('id')->on('users');
             $table->decimal('latitude', 10, 6);
             $table->decimal('longitude', 10, 6);
-            $table->timestamp('timestamp')->useCurrent();
+            $table->timestamps();
         });
     }
 
@@ -28,3 +28,4 @@ return new class extends Migration
         Schema::dropIfExists('locations_logs');
     }
 };
+
